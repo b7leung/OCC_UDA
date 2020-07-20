@@ -14,6 +14,7 @@ parser = argparse.ArgumentParser(
     description='Evaluate mesh algorithms.'
 )
 parser.add_argument('config', type=str, help='Path to config file.')
+parser.add_argument('--gpu', type=str, default=0, help='Gpu number to use.')
 parser.add_argument('--no-cuda', action='store_true', help='Do not use cuda.')
 parser.add_argument('--eval_input', action='store_true',
                     help='Evaluate inputs instead.')
@@ -21,7 +22,7 @@ parser.add_argument('--eval_input', action='store_true',
 args = parser.parse_args()
 cfg = config.load_config(args.config, 'configs/default.yaml')
 is_cuda = (torch.cuda.is_available() and not args.no_cuda)
-device = torch.device("cuda" if is_cuda else "cpu")
+device = torch.device("cuda:{}".format(args.gpu) if is_cuda else "cpu")
 
 # Shorthands
 out_dir = cfg['training']['out_dir']

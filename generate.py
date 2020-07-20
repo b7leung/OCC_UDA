@@ -1,8 +1,22 @@
+import os
+import argparse
+
+parser = argparse.ArgumentParser(
+    description='Extract meshes from occupancy process.'
+)
+parser.add_argument('config', type=str, help='Path to config file.')
+parser.add_argument('--gpu', type=str, default=0, help='Gpu number to use.')
+parser.add_argument('--no-cuda', action='store_true', help='Do not use cuda.')
+parser.add_argument('--da', action='store_true', help='Generate using the target dataset, for unsupervised domain adaptation.')
+
+args = parser.parse_args()
+os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu  # hard set gpu because there is an issue of something using gpu 0
+# need to do this before importing torch
+
 import torch
 # import torch.distributions as dist
-import os
+
 import shutil
-import argparse
 from tqdm import tqdm
 import time
 from collections import defaultdict
@@ -14,13 +28,6 @@ from im2mesh.utils.visualize import visualize_data
 from im2mesh.utils.voxels import VoxelGrid
 
 
-parser = argparse.ArgumentParser(
-    description='Extract meshes from occupancy process.'
-)
-parser.add_argument('config', type=str, help='Path to config file.')
-parser.add_argument('--no-cuda', action='store_true', help='Do not use cuda.')
-
-args = parser.parse_args()
 cfg = config.load_config(args.config, 'configs/default.yaml')
 is_cuda = (torch.cuda.is_available() and not args.no_cuda)
 device = torch.device("cuda" if is_cuda else "cpu")
@@ -37,7 +44,7 @@ if vis_n_outputs is None:
     vis_n_outputs = -1
 
 # Dataset
-dataset = config.get_dataset('test', cfg, return_idx=True)
+dataset = config.get_dataset('test', cfg, return_idx=True, target_domain = args.da)
 
 # Model
 model = config.get_model(cfg, device=device, dataset=dataset)

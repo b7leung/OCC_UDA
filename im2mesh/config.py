@@ -108,68 +108,82 @@ def get_generator(model, cfg, device):
 
 
 # Datasets
-def get_dataset(mode, cfg, return_idx=False, return_category=False):
+def get_dataset(mode, cfg, return_idx=False, return_category=False, target_domain = False):
     ''' Returns the dataset.
 
     Args:
         model (nn.Module): the model which is used
         cfg (dict): config dictionary
         return_idx (bool): whether to include an ID field
+        target_domain (bool): whether to use the target_domain dataset
     '''
+
     method = cfg['method']
-    dataset_type = cfg['data']['dataset']
-    dataset_folder = cfg['data']['path']
-    categories = cfg['data']['classes']
+    if target_domain:
+        dataset_type = cfg['data']['uda_dataset']
+        dataset_folder = cfg['data']['uda_path']
+        categories = cfg['data']['uda_classes']
 
-    # Get split
-    splits = {
-        'train': cfg['data']['train_split'],
-        'val': cfg['data']['val_split'],
-        'test': cfg['data']['test_split'],
-    }
+        if dataset_type == "pix3d":
+            dataset = data.Pix3dDataset(dataset_folder, img_size=cfg['data']['img_size'],
+                categories=categories, return_idx=return_idx)
+        else:
+            raise ValueError('Invalid dataset "%s"' % cfg['data']['uda_dataset'])
 
-    split = splits[mode]
-
-    # Create dataset
-    if dataset_type == 'Shapes3D':
-        # Dataset fields
-        # Method specific fields (usually correspond to output)
-        fields = method_dict[method].config.get_data_fields(mode, cfg)
-        # Input fields
-        inputs_field = get_inputs_field(mode, cfg)
-        if inputs_field is not None:
-            fields['inputs'] = inputs_field
-
-        if return_idx:
-            fields['idx'] = data.IndexField()
-
-        if return_category:
-            fields['category'] = data.CategoryField()
-
-        dataset = data.Shapes3dDataset(
-            dataset_folder, fields,
-            split=split,
-            categories=categories,
-        )
-    elif dataset_type == 'kitti':
-        dataset = data.KittiDataset(
-            dataset_folder, img_size=cfg['data']['img_size'],
-            return_idx=return_idx
-        )
-    elif dataset_type == 'online_products':
-        dataset = data.OnlineProductDataset(
-            dataset_folder, img_size=cfg['data']['img_size'],
-            classes=cfg['data']['classes'],
-            max_number_imgs=cfg['generation']['max_number_imgs'],
-            return_idx=return_idx, return_category=return_category
-        )
-    elif dataset_type == 'images':
-        dataset = data.ImageDataset(
-            dataset_folder, img_size=cfg['data']['img_size'],
-            return_idx=return_idx,
-        )
     else:
-        raise ValueError('Invalid dataset "%s"' % cfg['data']['dataset'])
+        dataset_type = cfg['data']['dataset']
+        dataset_folder = cfg['data']['path']
+        categories = cfg['data']['classes']
+
+        # Get split
+        splits = {
+            'train': cfg['data']['train_split'],
+            'val': cfg['data']['val_split'],
+            'test': cfg['data']['test_split'],
+        }
+
+        split = splits[mode]
+
+        # Create dataset
+        if dataset_type == 'Shapes3D':
+            # Dataset fields
+            # Method specific fields (usually correspond to output)
+            fields = method_dict[method].config.get_data_fields(mode, cfg)
+            # Input fields
+            inputs_field = get_inputs_field(mode, cfg)
+            if inputs_field is not None:
+                fields['inputs'] = inputs_field
+
+            if return_idx:
+                fields['idx'] = data.IndexField()
+
+            if return_category:
+                fields['category'] = data.CategoryField()
+
+            dataset = data.Shapes3dDataset(
+                dataset_folder, fields,
+                split=split,
+                categories=categories,
+            )
+        elif dataset_type == 'kitti':
+            dataset = data.KittiDataset(
+                dataset_folder, img_size=cfg['data']['img_size'],
+                return_idx=return_idx
+            )
+        elif dataset_type == 'online_products':
+            dataset = data.OnlineProductDataset(
+                dataset_folder, img_size=cfg['data']['img_size'],
+                classes=cfg['data']['classes'],
+                max_number_imgs=cfg['generation']['max_number_imgs'],
+                return_idx=return_idx, return_category=return_category
+            )
+        elif dataset_type == 'images':
+            dataset = data.ImageDataset(
+                dataset_folder, img_size=cfg['data']['img_size'],
+                return_idx=return_idx,
+            )
+        else:
+            raise ValueError('Invalid dataset "%s"' % cfg['data']['dataset'])
  
     return dataset
 

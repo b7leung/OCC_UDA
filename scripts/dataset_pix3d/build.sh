@@ -1,4 +1,5 @@
-source dataset_shapenet/config.sh
+# note: need to do: export PYTHONPATH=/home/brandon/occ_uda/external/mesh-fusion/libfusioncpu/:$PYTHONPATH
+source dataset_pix3d/config.sh
 # Make output directories
 mkdir -p $BUILD_PATH
 

@@ -5,7 +5,7 @@ export HDF5_USE_FILE_LOCKING=FALSE # Workaround for NFS mounts
 
 INPUT_PATH=$ROOT/data/external/pix3d/model
 #CHOY2016_PATH=$ROOT/data/external/Choy2016
-BUILD_PATH=$ROOT/data/pix3d.build
+BUILD_PATH=$ROOT/data/pix3d_testttt.build
 OUTPUT_PATH=$ROOT/data/pix3d_processed
 
 NPROC=12

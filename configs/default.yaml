@@ -26,7 +26,6 @@ data:
   pointcloud_noise: 0.05
   voxels_file: 'model.binvox'
   with_transforms: false
-  uda_dataset: null
   uda_path: null
   uda_classes: null
   uda_img_folder: null

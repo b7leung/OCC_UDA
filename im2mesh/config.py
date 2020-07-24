@@ -119,13 +119,13 @@ def get_dataset(mode, cfg, return_idx=False, return_category=False, target_domai
     '''
 
     method = cfg['method']
+    dataset_type = cfg['data']['dataset']
     if target_domain:
-        dataset_type = cfg['data']['uda_dataset']
+        #dataset_type = cfg['data']['uda_dataset']
         dataset_folder = cfg['data']['uda_path']
         categories = cfg['data']['uda_classes']
         img_folder_name = cfg['data']['uda_img_folder']
     else:
-        dataset_type = cfg['data']['dataset']
         dataset_folder = cfg['data']['path']
         categories = cfg['data']['classes']
         img_folder_name = cfg['data']['img_folder']

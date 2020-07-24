@@ -70,6 +70,7 @@ class ImagesField(Field):
         self.extension = extension
         self.random_view = random_view
         self.with_camera = with_camera
+        self.bg_configure = bg_configure
 
     def load(self, model_path, idx, category):
         ''' Loads the data point.
@@ -81,12 +82,13 @@ class ImagesField(Field):
         '''
         folder = os.path.join(model_path, self.folder_name)
 
-        if bg_configure == "bg":
+        if self.bg_configure == "bg":
             files = glob.glob(os.path.join(folder, 'bg.%s' % self.extension))
-        elif bg_configure == "no_bg":
+        elif self.bg_configure == "no_bg":
             files = glob.glob(os.path.join(folder, 'no_bg.%s' % self.extension))
         else:
             files = glob.glob(os.path.join(folder, '*.%s' % self.extension))
+        #print("2--------------------------------")
 
 
         if self.random_view:

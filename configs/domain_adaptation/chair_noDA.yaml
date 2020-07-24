@@ -5,11 +5,11 @@ data:
   img_folder: img_choy2016
   img_size: 224 
   points_subsample: 2048 
-  uda_dataset: pix3d_processed
   uda_path: data/pix3d_processed
   uda_classes: ['chair']
   uda_img_folder: img_pix3d
   uda_bg_configure: "no_bg"
+  voxels_file: null # check in config.py for onet
 model:
   encoder_latent: null
   decoder: cbatchnorm
@@ -17,7 +17,7 @@ model:
   c_dim: 256
   z_dim: 0
 training:
-  out_dir:  out/DA_related/onet_chair_no_DA_test
+  out_dir:  out/DA_related/onet_chair_no_DA
   batch_size: 64
   model_selection_metric: iou
   model_selection_mode: maximize

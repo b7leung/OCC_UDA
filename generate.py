@@ -149,7 +149,14 @@ for it, data in enumerate(tqdm(test_loader)):
 
     if generate_mesh:
         t0 = time.time()
-        out = generator.generate_mesh(data)
+        try:
+            out = generator.generate_mesh(data)
+        except Exception as e:
+            print(e)
+            print("ERROR")
+            print(modelname)
+            continue
+
         time_dict['mesh'] = time.time() - t0
 
         # Get statistics

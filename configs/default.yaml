@@ -29,6 +29,8 @@ data:
   uda_dataset: null
   uda_path: null
   uda_classes: null
+  uda_img_folder: null
+  uda_bg_configure: null # options: null/no_bg/bg
 model:
   decoder: simple
   encoder: resnet18

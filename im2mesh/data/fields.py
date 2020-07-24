@@ -61,9 +61,10 @@ class ImagesField(Field):
         extension (str): image extension
         random_view (bool): whether a random view should be used
         with_camera (bool): whether camera data should be provided
+        with_bg (str): If "bg", use version with bg ("bg.jpg"). If "no_bg, use version w/o bg ("no_bg.jpg). If anything else, ignored.
     '''
     def __init__(self, folder_name, transform=None,
-                 extension='jpg', random_view=True, with_camera=False):
+                 extension='jpg', random_view=True, with_camera=False, bg_configure = ""):
         self.folder_name = folder_name
         self.transform = transform
         self.extension = extension
@@ -79,7 +80,15 @@ class ImagesField(Field):
             category (int): index of category
         '''
         folder = os.path.join(model_path, self.folder_name)
-        files = glob.glob(os.path.join(folder, '*.%s' % self.extension))
+
+        if bg_configure == "bg":
+            files = glob.glob(os.path.join(folder, 'bg.%s' % self.extension))
+        elif bg_configure == "no_bg":
+            files = glob.glob(os.path.join(folder, 'no_bg.%s' % self.extension))
+        else:
+            files = glob.glob(os.path.join(folder, '*.%s' % self.extension))
+
+
         if self.random_view:
             idx_img = random.randint(0, len(files)-1)
         else:

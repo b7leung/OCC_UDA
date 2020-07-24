@@ -5,9 +5,11 @@ data:
   img_folder: img_choy2016
   img_size: 224 
   points_subsample: 2048 
-  uda_dataset: pix3d
-  uda_path: data/pix3d
+  uda_dataset: pix3d_processed
+  uda_path: data/pix3d_processed
   uda_classes: ['chair']
+  uda_img_folder: img_pix3d
+  uda_bg_configure: "no_bg"
 model:
   encoder_latent: null
   decoder: cbatchnorm

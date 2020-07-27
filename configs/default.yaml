@@ -53,6 +53,7 @@ training:
   eval_sample: false
   model_selection_metric: loss
   model_selection_mode: minimize
+  uda_type: null # null (no uda), or DANN
 test:
   threshold: 0.5
   eval_mesh: true

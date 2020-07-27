@@ -8,6 +8,8 @@ parser.add_argument('config', type=str, help='Path to config file.')
 parser.add_argument('--gpu', type=str, default=0, help='Gpu number to use.')
 parser.add_argument('--no-cuda', action='store_true', help='Do not use cuda.')
 parser.add_argument('--da', action='store_true', help='Generate using the target dataset, for unsupervised domain adaptation.')
+parser.add_argument('--generation_dir', type=str, default="", help='path of generation dir. If omitted, will use the one in the config yaml')
+
 
 args = parser.parse_args()
 os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu  # hard set gpu because there is an issue of something using gpu 0
@@ -33,7 +35,12 @@ is_cuda = (torch.cuda.is_available() and not args.no_cuda)
 device = torch.device("cuda" if is_cuda else "cpu")
 
 out_dir = cfg['training']['out_dir']
-generation_dir = os.path.join(out_dir, cfg['generation']['generation_dir'])
+
+if args.generation_dir == "":
+    generation_dir = os.path.join(out_dir, cfg['generation']['generation_dir'])
+else:
+    generation_dir = os.path.join(out_dir, args.generation_dir) 
+
 out_time_file = os.path.join(generation_dir, 'time_generation_full.pkl')
 out_time_file_class = os.path.join(generation_dir, 'time_generation.pkl')
 
@@ -44,7 +51,7 @@ if vis_n_outputs is None:
     vis_n_outputs = -1
 
 # Dataset
-dataset = config.get_dataset('test', cfg, return_idx=True, target_domain = args.da)
+dataset = config.get_dataset('test', cfg, return_idx=True, use_target_domain = args.da)
 
 # Model
 model = config.get_model(cfg, device=device, dataset=dataset)

@@ -54,7 +54,7 @@ class Trainer(BaseTrainer):
         ''' Performs an evaluation step.
 
         Args:
-            data (dict): data dictionary
+            data (dict): data dictionary (minibatch)
         '''
         self.model.eval()
 

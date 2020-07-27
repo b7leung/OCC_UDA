@@ -108,27 +108,25 @@ def get_generator(model, cfg, device):
 
 
 # Datasets
-def get_dataset(mode, cfg, return_idx=False, return_category=False, target_domain = False):
+def get_dataset(mode, cfg, return_idx=False, return_category=False, use_target_domain = False):
     ''' Returns the dataset.
 
     Args:
         model (nn.Module): the model which is used
         cfg (dict): config dictionary
         return_idx (bool): whether to include an ID field
-        target_domain (bool): whether to use the target_domain dataset
+        use_target_domain (bool): whether to use the target_domain dataset
     '''
 
     method = cfg['method']
     dataset_type = cfg['data']['dataset']
-    if target_domain:
+    if use_target_domain:
         #dataset_type = cfg['data']['uda_dataset']
         dataset_folder = cfg['data']['uda_path']
         categories = cfg['data']['uda_classes']
-        img_folder_name = cfg['data']['uda_img_folder']
     else:
         dataset_folder = cfg['data']['path']
         categories = cfg['data']['classes']
-        img_folder_name = cfg['data']['img_folder']
 
     # Get split
     splits = {
@@ -145,7 +143,7 @@ def get_dataset(mode, cfg, return_idx=False, return_category=False, target_domai
         # Method specific fields (usually correspond to output)
         fields = method_dict[method].config.get_data_fields(mode, cfg)
         # Input fields
-        inputs_field = get_inputs_field(mode, cfg, img_folder_name)
+        inputs_field = get_inputs_field(mode, cfg, use_target_domain)
         if inputs_field is not None:
             fields['inputs'] = inputs_field
 
@@ -183,12 +181,13 @@ def get_dataset(mode, cfg, return_idx=False, return_category=False, target_domai
     return dataset
 
 
-def get_inputs_field(mode, cfg, img_folder_name):
+def get_inputs_field(mode, cfg, use_target_domain = False):
     ''' Returns the inputs fields.
 
     Args:
         mode (str): the mode which is used
         cfg (dict): config dictionary
+        use_target_domain (bool): whether to use the target_domain dataset
     '''
     input_type = cfg['data']['input_type']
     with_transforms = cfg['data']['with_transforms']
@@ -207,12 +206,18 @@ def get_inputs_field(mode, cfg, img_folder_name):
         ])
 
         with_camera = cfg['data']['img_with_camera']
-        bg_configure= cfg['data']['uda_bg_configure']
 
         if mode == 'train':
             random_view = True
         else:
             random_view = False
+        
+        if use_target_domain:
+            img_folder_name = cfg['data']['uda_img_folder']
+            bg_configure = cfg['data']['uda_bg_configure']
+        else:
+            img_folder_name = cfg['data']['img_folder']
+            bg_configure = ""
 
         inputs_field = data.ImagesField(
             img_folder_name, transform,

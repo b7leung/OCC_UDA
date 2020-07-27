@@ -18,6 +18,10 @@ parser.add_argument('--gpu', type=str, default=0, help='Gpu number to use.')
 parser.add_argument('--no-cuda', action='store_true', help='Do not use cuda.')
 parser.add_argument('--eval_input', action='store_true',
                     help='Evaluate inputs instead.')
+parser.add_argument('--da', action='store_true', help='Generate using the target dataset, for unsupervised domain adaptation.')
+parser.add_argument('--generation_dir', type=str, default="", help='path of generation dir. If omitted, will use the one in the config yaml')
+
+
 
 args = parser.parse_args()
 cfg = config.load_config(args.config, 'configs/default.yaml')
@@ -26,7 +30,13 @@ device = torch.device("cuda:{}".format(args.gpu) if is_cuda else "cpu")
 
 # Shorthands
 out_dir = cfg['training']['out_dir']
-generation_dir = os.path.join(out_dir, cfg['generation']['generation_dir'])
+
+if args.generation_dir == "":
+    generation_dir = os.path.join(out_dir, cfg['generation']['generation_dir'])
+else:
+    generation_dir = os.path.join(out_dir, args.generation_dir) 
+
+
 if not args.eval_input:
     out_file = os.path.join(generation_dir, 'eval_meshes_full.pkl')
     out_file_class = os.path.join(generation_dir, 'eval_meshes.csv')
@@ -50,11 +60,17 @@ fields = {
 
 print('Test split: ', cfg['data']['test_split'])
 
-dataset_folder = cfg['data']['path']
+if args.da:
+    dataset_folder = cfg['data']['uda_path']
+    categories_to_use = cfg['data']['uda_classes']
+else:
+    dataset_folder = cfg['data']['path']
+    categories_to_use = cfg['data']['classes']
+
 dataset = data.Shapes3dDataset(
     dataset_folder, fields,
     cfg['data']['test_split'],
-    categories=cfg['data']['classes'])
+    categories=categories_to_use)
 
 # Evaluator
 evaluator = MeshEvaluator(n_points=100000)

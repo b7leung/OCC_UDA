@@ -147,6 +147,24 @@ def get_dataset(mode, cfg, return_idx=False, return_category=False, use_target_d
         if inputs_field is not None:
             fields['inputs'] = inputs_field
 
+        # adding field for UDA input when training
+        if mode == 'train' and cfg['training']['uda_type'] is not None:
+            # Also data-augment target domain imgs?
+            if cfg['data']['img_augment']:
+                resize_op = transforms.RandomResizedCrop(
+                    cfg['data']['img_size'], (0.75, 1.), (1., 1.))
+            else:
+                resize_op = transforms.Resize((cfg['data']['img_size']))
+            transform = transforms.Compose([
+                resize_op, transforms.ToTensor(),
+            ])
+
+            # random_view=True enables randomness
+            fields['inputs_target_domain'] = data.ImagesField(
+                #cfg['data']['uda_path_train'], transform=transform, random_view=True, image_based_hier=True
+                cfg['data']['uda_path_train'], transform=transform, random_view=True, extensions=['jpg', 'jpeg', 'png'], image_based_hier=True
+            )
+
         if return_idx:
             fields['idx'] = data.IndexField()
 
@@ -214,14 +232,14 @@ def get_inputs_field(mode, cfg, use_target_domain = False):
         
         if use_target_domain:
             img_folder_name = cfg['data']['uda_img_folder']
-            bg_configure = cfg['data']['uda_bg_configure']
+            filename_pattern= cfg['data']['uda_bg_configure']
         else:
             img_folder_name = cfg['data']['img_folder']
-            bg_configure = ""
+            filename_pattern = "*"
 
         inputs_field = data.ImagesField(
             img_folder_name, transform,
-            with_camera=with_camera, random_view=random_view, bg_configure=bg_configure
+            with_camera=with_camera, random_view=random_view, filename_pattern=filename_pattern
         )
     elif input_type == 'pointcloud':
         transform = transforms.Compose([

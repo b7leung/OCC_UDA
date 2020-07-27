@@ -61,16 +61,19 @@ class ImagesField(Field):
         extension (str): image extension
         random_view (bool): whether a random view should be used
         with_camera (bool): whether camera data should be provided
-        with_bg (str): If "bg", use version with bg ("bg.jpg"). If "no_bg, use version w/o bg ("no_bg.jpg). If anything else, ignored.
+        filename_pattern (str): pattern for prefix of the filename. Default ('*') allows any filename.
+        image_based_hier (bool): If True, assumes a different kind of image folder hierarchy. This uses self.folder_name as the image dataset path
+        and in practice, is used for the target domain dataset of images.
     '''
     def __init__(self, folder_name, transform=None,
-                 extension='jpg', random_view=True, with_camera=False, bg_configure = ""):
+                 extensions=['jpg'], random_view=True, with_camera=False, filename_pattern= "*", image_based_hier = False):
         self.folder_name = folder_name
         self.transform = transform
-        self.extension = extension
+        self.extensions = extensions
         self.random_view = random_view
         self.with_camera = with_camera
-        self.bg_configure = bg_configure
+        self.filename_pattern= filename_pattern 
+        self.image_based_hier = image_based_hier
 
     def load(self, model_path, idx, category):
         ''' Loads the data point.
@@ -80,15 +83,18 @@ class ImagesField(Field):
             idx (int): ID of data point
             category (int): index of category
         '''
-        folder = os.path.join(model_path, self.folder_name)
-
-        if self.bg_configure == "bg":
-            files = glob.glob(os.path.join(folder, 'bg.%s' % self.extension))
-        elif self.bg_configure == "no_bg":
-            files = glob.glob(os.path.join(folder, 'no_bg.%s' % self.extension))
+        
+        if self.image_based_hier:
+            # TODO: this extracts the class from model_path, and requires that it follows the format data/ShapeNet/03001627/713d6515...
+            obj_class = model_path.split('/')[2]
+            folder = os.path.join(self.folder_name, obj_class)
         else:
-            files = glob.glob(os.path.join(folder, '*.%s' % self.extension))
-        #print("2--------------------------------")
+            folder = os.path.join(model_path, self.folder_name)
+
+        files = []
+        for extension in self.extensions:
+            files_template = os.path.join(folder, '{}.{}'.format(self.filename_pattern, extension))
+            files += glob.glob(files_template)
 
 
         if self.random_view:

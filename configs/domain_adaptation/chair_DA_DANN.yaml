@@ -6,9 +6,9 @@ data:
   img_size: 224 
   points_subsample: 2048 
   uda_path: data/pix3d_processed
+  uda_path_train: data/target_domain/no_bg # used for training. in the future, make this bigger (eg, 6781 chair models in shapenet)
   uda_classes: ['chair']
-  uda_img_folder_train: img_pix3d # in the future, make this bigger (eg, 6781 chair models in shapenet)
-  uda_img_folder: img_pix3d
+  uda_img_folder: img_pix3d # used for testing
   uda_bg_configure: "no_bg"
   voxels_file: null # check in config.py for onet
 model:

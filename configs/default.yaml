@@ -54,6 +54,7 @@ training:
   model_selection_metric: loss
   model_selection_mode: minimize
   uda_type: null # null (no uda), or DANN
+  num_epochs: null
 test:
   threshold: 0.5
   eval_mesh: true

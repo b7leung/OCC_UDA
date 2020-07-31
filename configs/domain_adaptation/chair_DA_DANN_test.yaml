@@ -18,15 +18,15 @@ model:
   c_dim: 256 # size of latent code for image
   z_dim: 0
 training:
-  out_dir:  out/DA_related/onet_chair_DANN_optimized
+  out_dir:  out/DA_related/onet_chair_DANN_test
   batch_size: 64
   model_selection_metric: iou
   model_selection_mode: maximize
   visualize_every: 20000
   validate_every: 20000
-  backup_every: 10000
+  backup_every: 50000
   uda_type: dann
-  num_epochs: 1000
+  num_epochs: 1
 test:
   threshold: 0.2
   eval_mesh: true

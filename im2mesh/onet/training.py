@@ -3,6 +3,7 @@ from tqdm import trange
 import torch
 from torch.nn import functional as F
 from torch import distributions as dist
+import numpy as np
 from im2mesh.common import (
     compute_iou, make_3d_grid
 )
@@ -25,7 +26,7 @@ class Trainer(BaseTrainer):
     '''
 
     def __init__(self, model, optimizer, device=None, input_type='img',
-                 vis_dir=None, threshold=0.5, eval_sample=False):
+                 vis_dir=None, threshold=0.5, eval_sample=False, uda_type=None, num_epochs=None):
         self.model = model
         self.optimizer = optimizer
         self.device = device
@@ -33,6 +34,10 @@ class Trainer(BaseTrainer):
         self.vis_dir = vis_dir
         self.threshold = threshold
         self.eval_sample = eval_sample
+        self.uda_type = uda_type
+        
+        self.curr_epoch = 0
+        self.num_epochs = num_epochs
 
         if vis_dir is not None and not os.path.exists(vis_dir):
             os.makedirs(vis_dir)
@@ -155,14 +160,36 @@ class Trainer(BaseTrainer):
         inputs = data.get('inputs', torch.empty(p.size(0), 0)).to(device)
 
         kwargs = {}
-
+        # encoded image (source domain)
         c = self.model.encode_inputs(inputs)
+
+        # predicting & sampling from normal distribution for generative
         q_z = self.model.infer_z(p, occ, c, **kwargs)
         z = q_z.rsample()
 
         # KL-divergence
         kl = dist.kl_divergence(q_z, self.model.p0_z).sum(dim=-1)
         loss = kl.mean()
+
+
+        # Domain Adaptation Loss
+        if self.uda_type == "dann":
+            # encoded image (target domain)
+            inputs_target = data.get('inputs_target_domain', torch.empty(p.size(0), 0)).to(device)
+            c_target = self.model.encode_inputs(inputs_target)
+
+            # source domain has label 0, target domain has label 1
+            domain_pred_source = self.model.dann_discriminator_pred(c)
+            domain_pred_target = self.model.dann_discriminator_pred(c_target)
+            batch_size = c.shape[0]
+            domain_labels_source = torch.zeros((batch_size, 1)).to(device)
+            domain_labels_target = torch.ones((batch_size, 1)).to(device)
+            if self.num_epochs is None:
+                raise ValueError("For DANN domain adaptation, must specify num_epochs")
+            lam = (2 / (1 + np.exp(-10 * (self.curr_epoch / self.num_epochs))) ) - 1
+            loss = loss + (F.binary_cross_entropy_with_logits(domain_pred_source, domain_labels_source) * lam)
+            loss = loss + (F.binary_cross_entropy_with_logits(domain_pred_target, domain_labels_target) * lam)
+
 
         # General points
         logits = self.model.decode(p, z, c, **kwargs).logits

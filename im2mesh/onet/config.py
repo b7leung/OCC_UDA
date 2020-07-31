@@ -8,6 +8,7 @@ from im2mesh import data
 from im2mesh import config
 
 
+
 def get_model(cfg, device=None, dataset=None, **kwargs):
     ''' Return the Occupancy Network model.
 
@@ -25,6 +26,7 @@ def get_model(cfg, device=None, dataset=None, **kwargs):
     decoder_kwargs = cfg['model']['decoder_kwargs']
     encoder_kwargs = cfg['model']['encoder_kwargs']
     encoder_latent_kwargs = cfg['model']['encoder_latent_kwargs']
+    uda_type = cfg['training']['uda_type']
 
     decoder = models.decoder_dict[decoder](
         dim=dim, z_dim=z_dim, c_dim=c_dim,
@@ -49,9 +51,14 @@ def get_model(cfg, device=None, dataset=None, **kwargs):
     else:
         encoder = None
 
+    if uda_type == "dann":
+        dann_discriminator = models.dann_domain_discriminator.DANN_Domain_Discriminator(c_dim)
+    else:
+        dann_discriminator = None
+
     p0_z = get_prior_z(cfg, device)
     model = models.OccupancyNetwork(
-        decoder, encoder, encoder_latent, p0_z, device=device
+        decoder, encoder, dann_discriminator, encoder_latent, p0_z, device=device
     )
 
     return model
@@ -76,6 +83,8 @@ def get_trainer(model, optimizer, cfg, device, **kwargs):
         device=device, input_type=input_type,
         vis_dir=vis_dir, threshold=threshold,
         eval_sample=cfg['training']['eval_sample'],
+        uda_type=cfg['training']['uda_type'],
+        num_epochs=cfg['training']['num_epochs']
     )
 
     return trainer

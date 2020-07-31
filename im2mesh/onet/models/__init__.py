@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torch import distributions as dist
-from im2mesh.onet.models import encoder_latent, decoder
+from im2mesh.onet.models import encoder_latent, decoder, dann_domain_discriminator, gradient_reversal_module
 
 # Encoder latent dictionary
 encoder_latent_dict = {
@@ -29,7 +29,7 @@ class OccupancyNetwork(nn.Module):
         device (device): torch device
     '''
 
-    def __init__(self, decoder, encoder=None, encoder_latent=None, p0_z=None,
+    def __init__(self, decoder, encoder=None, dann_discriminator=None, encoder_latent=None, p0_z=None,
                  device=None):
         super().__init__()
         if p0_z is None:
@@ -47,8 +47,14 @@ class OccupancyNetwork(nn.Module):
         else:
             self.encoder = None
 
+        if dann_discriminator is not None:
+            self.dann_discriminator = dann_discriminator.to(device)
+        else:
+            self.dann_discriminator = None
+
         self._device = device
         self.p0_z = p0_z
+
 
     def forward(self, p, inputs, sample=True, **kwargs):
         ''' Performs a forward pass through the network.
@@ -153,3 +159,9 @@ class OccupancyNetwork(nn.Module):
         model = super().to(device)
         model._device = device
         return model
+
+    def dann_discriminator_pred(self, c):
+
+        logits = self.dann_discriminator(c)
+        return logits
+        

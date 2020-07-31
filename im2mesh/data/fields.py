@@ -74,6 +74,8 @@ class ImagesField(Field):
         self.with_camera = with_camera
         self.filename_pattern= filename_pattern 
         self.image_based_hier = image_based_hier
+        # used only for image_based_hier folders. Saves time for glob
+        self.files_cache = {}
 
     def load(self, model_path, idx, category):
         ''' Loads the data point.
@@ -88,17 +90,29 @@ class ImagesField(Field):
             # TODO: this extracts the class from model_path, and requires that it follows the format data/ShapeNet/03001627/713d6515...
             obj_class = model_path.split('/')[2]
             folder = os.path.join(self.folder_name, obj_class)
+
+            if folder in self.files_cache:
+                files = self.files_cache[folder]
+            else:
+                files = []
+                for extension in self.extensions:
+                    files_template = os.path.join(folder, '{}.{}'.format(self.filename_pattern, extension))
+                    files += glob.glob(files_template)
+                self.files_cache[folder] = files
+                
         else:
             folder = os.path.join(model_path, self.folder_name)
+            files = []
+            for extension in self.extensions:
+                files_template = os.path.join(folder, '{}.{}'.format(self.filename_pattern, extension))
+                files += glob.glob(files_template)
 
-        files = []
-        for extension in self.extensions:
-            files_template = os.path.join(folder, '{}.{}'.format(self.filename_pattern, extension))
-            files += glob.glob(files_template)
-
+            
 
         if self.random_view:
-            idx_img = random.randint(0, len(files)-1)
+            #idx_img = random.randint(0, len(files)-1)
+            # more efficient
+            idx_img = int(random.random()*len(files))
         else:
             idx_img = 0
         filename = files[idx_img]

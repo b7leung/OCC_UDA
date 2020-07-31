@@ -17,6 +17,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument('config', type=str, help='Path to config file.')
 parser.add_argument('--gpu', type=str, default=0, help='Gpu number to use.')
 parser.add_argument('--no-cuda', action='store_true', help='Do not use cuda.')
+parser.add_argument('--benchmark_mode', action='store_true', help='Do not use cuda.')
 parser.add_argument('--exit-after', type=int, default=-1,
                     help='Checkpoint and exit after specified number of seconds'
                          'with exit code 2.')
@@ -53,15 +54,14 @@ train_dataset = config.get_dataset('train', cfg)
 val_dataset = config.get_dataset('val', cfg)
 
 train_loader = torch.utils.data.DataLoader(
-    train_dataset, batch_size=batch_size, num_workers=4, shuffle=True,
+    train_dataset, batch_size=batch_size, num_workers=0, shuffle=True,
     collate_fn=data.collate_remove_none,
     worker_init_fn=data.worker_init_fn)
 
 val_loader = torch.utils.data.DataLoader(
-    val_dataset, batch_size=10, num_workers=4, shuffle=False,
+    val_dataset, batch_size=10, num_workers=0, shuffle=False,
     collate_fn=data.collate_remove_none,
     worker_init_fn=data.worker_init_fn)
-
 
 # For visualizations
 vis_loader = torch.utils.data.DataLoader(
@@ -116,6 +116,8 @@ nparameters = sum(p.numel() for p in model.parameters())
 print(model)
 print('Total number of parameters: %d' % nparameters)
 
+num_epochs = cfg['training']['num_epochs']
+
 while True:
     epoch_it += 1
 #     scheduler.step()
@@ -130,41 +132,49 @@ while True:
             print('[Epoch %02d] it=%03d, loss=%.4f'
                   % (epoch_it, it, loss))
 
-        # Visualize output
-        if visualize_every > 0 and (it % visualize_every) == 0:
-            print('Visualizing')
-            trainer.visualize(data_vis)
+        if not args.benchmark_mode:
+            # Visualize output (comment out when benchmarking)
+            if visualize_every > 0 and (it % visualize_every) == 0:
+                print('Visualizing')
+                trainer.visualize(data_vis)
 
-        # Save checkpoint
-        if (checkpoint_every > 0 and (it % checkpoint_every) == 0):
-            print('Saving checkpoint')
-            checkpoint_io.save('model.pt', epoch_it=epoch_it, it=it,
-                               loss_val_best=metric_val_best)
+            # Save checkpoint (comment out when benchmarking)
+            if (checkpoint_every > 0 and (it % checkpoint_every) == 0):
+                print('Saving checkpoint')
+                checkpoint_io.save('model.pt', epoch_it=epoch_it, it=it,
+                                loss_val_best=metric_val_best)
 
-        # Backup if necessary
-        if (backup_every > 0 and (it % backup_every) == 0):
-            print('Backup checkpoint')
-            checkpoint_io.save('model_%d.pt' % it, epoch_it=epoch_it, it=it,
-                               loss_val_best=metric_val_best)
-        # Run validation
-        if validate_every > 0 and (it % validate_every) == 0:
-            eval_dict = trainer.evaluate(val_loader)
-            metric_val = eval_dict[model_selection_metric]
-            print('Validation metric (%s): %.4f'
-                  % (model_selection_metric, metric_val))
+            # Backup if necessary (comment out when benchmarking)
+            if (backup_every > 0 and (it % backup_every) == 0):
+                print('Backup checkpoint')
+                checkpoint_io.save('model_%d.pt' % it, epoch_it=epoch_it, it=it,
+                                loss_val_best=metric_val_best)
 
-            for k, v in eval_dict.items():
-                logger.add_scalar('val/%s' % k, v, it)
+            # Run validation (comment out when benchmarking)
+            if validate_every > 0 and (it % validate_every) == 0:
+                eval_dict = trainer.evaluate(val_loader)
+                metric_val = eval_dict[model_selection_metric]
+                print('Validation metric (%s): %.4f'
+                    % (model_selection_metric, metric_val))
 
-            if model_selection_sign * (metric_val - metric_val_best) > 0:
-                metric_val_best = metric_val
-                print('New best model (loss %.4f)' % metric_val_best)
-                checkpoint_io.save('model_best.pt', epoch_it=epoch_it, it=it,
-                                   loss_val_best=metric_val_best)
+                for k, v in eval_dict.items():
+                    logger.add_scalar('val/%s' % k, v, it)
 
+                if model_selection_sign * (metric_val - metric_val_best) > 0:
+                    metric_val_best = metric_val
+                    print('New best model (loss %.4f)' % metric_val_best)
+                    checkpoint_io.save('model_best.pt', epoch_it=epoch_it, it=it,
+                                    loss_val_best=metric_val_best)
+
+    
         # Exit if necessary
-        if exit_after > 0 and (time.time() - t0) >= exit_after:
-            print('Time limit reached. Exiting.')
+        if (exit_after > 0 and (time.time() - t0) >= exit_after) or (num_epochs is not None and epoch_it > num_epochs):
+            print('Time limit reached, or max epochs reached. Exiting.')
             checkpoint_io.save('model.pt', epoch_it=epoch_it, it=it,
                                loss_val_best=metric_val_best)
             exit(3)
+
+    if args.benchmark_mode:
+        break
+
+    trainer.curr_epoch += 1

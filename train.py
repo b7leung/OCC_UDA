@@ -53,13 +53,18 @@ if not os.path.exists(out_dir):
 train_dataset = config.get_dataset('train', cfg)
 val_dataset = config.get_dataset('val', cfg)
 
+if args.benchmark_mode:
+    num_workers = 0
+else:
+    num_workers = 4
+
 train_loader = torch.utils.data.DataLoader(
-    train_dataset, batch_size=batch_size, num_workers=0, shuffle=True,
+    train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True,
     collate_fn=data.collate_remove_none,
     worker_init_fn=data.worker_init_fn)
 
 val_loader = torch.utils.data.DataLoader(
-    val_dataset, batch_size=10, num_workers=0, shuffle=False,
+    val_dataset, batch_size=10, num_workers=num_workers, shuffle=False,
     collate_fn=data.collate_remove_none,
     worker_init_fn=data.worker_init_fn)
 

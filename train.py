@@ -56,7 +56,7 @@ val_dataset = config.get_dataset('val', cfg)
 if args.benchmark_mode:
     num_workers = 0
 else:
-    num_workers = 4
+    num_workers = 8
 
 train_loader = torch.utils.data.DataLoader(
     train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True,

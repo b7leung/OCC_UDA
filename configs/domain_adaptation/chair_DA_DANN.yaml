@@ -26,7 +26,7 @@ training:
   validate_every: 20000
   backup_every: 10000
   uda_type: dann
-  num_epochs: 1000
+  num_epochs: 100
 test:
   threshold: 0.2
   eval_mesh: true

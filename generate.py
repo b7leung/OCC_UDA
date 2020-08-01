@@ -57,7 +57,8 @@ dataset = config.get_dataset('test', cfg, return_idx=True, use_target_domain = a
 model = config.get_model(cfg, device=device, dataset=dataset)
 
 checkpoint_io = CheckpointIO(out_dir, model=model)
-checkpoint_io.load(cfg['test']['model_file'])
+# load with 'cuda:0' because we set visible devices earlier
+checkpoint_io.load(cfg['test']['model_file'], 'cuda:0')
 
 # Generator
 generator = config.get_generator(model, cfg, device=device)

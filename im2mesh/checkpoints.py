@@ -37,7 +37,7 @@ class CheckpointIO(object):
             outdict[k] = v.state_dict()
         torch.save(outdict, filename)
 
-    def load(self, filename):
+    def load(self, filename, map_location=""):
         '''Loads a module dictionary from local file or url.
         
         Args:
@@ -46,13 +46,15 @@ class CheckpointIO(object):
         if is_url(filename):
             return self.load_url(filename)
         else:
-            return self.load_file(filename)
+            return self.load_file(filename, map_location=map_location)
 
-    def load_file(self, filename):
+    def load_file(self, filename, map_location=""):
         '''Loads a module dictionary from file.
         
         Args:
             filename (str): name of saved module dictionary
+            map_location (str): name of gpu where file was originally trained.
+            see: https://github.com/pytorch/pytorch/issues/15541
         '''
 
         if not os.path.isabs(filename):
@@ -61,7 +63,10 @@ class CheckpointIO(object):
         if os.path.exists(filename):
             print(filename)
             print('=> Loading checkpoint from local file...')
-            state_dict = torch.load(filename)
+            if map_location == "":
+                state_dict = torch.load(filename)
+            else:
+                state_dict = torch.load(filename, map_location=map_location)
             scalars = self.parse_state_dict(state_dict)
             return scalars
         else:

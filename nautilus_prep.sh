@@ -6,8 +6,10 @@ cd data
 
 mkdir ShapeNet
 cp /home/svcl-oowl/brandon/research/occ_uda/data/compressed_datasets/03001627.tar.gz ShapeNet
-tar -xzvf ShapeNet/03001627.tar.gz
-rm ShapeNet/03001627.tar.gz
+cd ShapeNet
+tar -xzvf 03001627.tar.gz
+rm 03001627.tar.gz
+cd ..
 
 cp /home/svcl-oowl/brandon/research/occ_uda/data/compressed_datasets/pix3d_processed.tar.gz .
 tar -xzvf pix3d_processed.tar.gz

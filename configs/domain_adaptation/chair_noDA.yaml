@@ -8,7 +8,7 @@ data:
   uda_path: data/pix3d_processed
   uda_classes: ['chair']
   uda_img_folder: img_pix3d
-  uda_bg_configure: "no_bg"
+  uda_bg_configure: "bg"
   voxels_file: null # check in config.py for onet
 model:
   encoder_latent: null

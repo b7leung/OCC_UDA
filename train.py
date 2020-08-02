@@ -3,6 +3,7 @@ import torch.optim as optim
 from tensorboardX import SummaryWriter
 import numpy as np
 import os
+import subprocess
 import argparse
 import time
 import matplotlib; matplotlib.use('Agg')
@@ -48,6 +49,9 @@ else:
 # Output directory
 if not os.path.exists(out_dir):
     os.makedirs(out_dir)
+# copy input yaml to out directory for future reference
+my_cmd = subprocess.run(['cp', args.config, os.path.join(out_dir,"CONFIG_USED"+args.config.split('/')[-1])], check=True)
+
 
 # Dataset
 train_dataset = config.get_dataset('train', cfg)

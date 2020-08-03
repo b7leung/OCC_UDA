@@ -118,7 +118,7 @@ class OccupancyNetwork(nn.Module):
         return p_r
 
     def infer_z(self, p, occ, c, **kwargs):
-        ''' Infers z.
+        ''' Infers z. if encoder_latent is none, returns standard normal
 
         Args:
             p (tensor): points tensor

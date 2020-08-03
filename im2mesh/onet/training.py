@@ -167,10 +167,10 @@ class Trainer(BaseTrainer):
         q_z = self.model.infer_z(p, occ, c, **kwargs)
         z = q_z.rsample()
 
-        # KL-divergence
+        # KL-divergence loss. Note that this is always 0 if in the config.yaml encoder_latent: null and z_dim:0 
+        # it's zero because q_z and p0_z will both be standard multivariate normal distributions
         kl = dist.kl_divergence(q_z, self.model.p0_z).sum(dim=-1)
         loss = kl.mean()
-
 
         # Domain Adaptation Loss
         if self.uda_type == "dann":

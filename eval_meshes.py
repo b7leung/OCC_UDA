@@ -13,7 +13,8 @@ from im2mesh.utils.io import load_pointcloud
 parser = argparse.ArgumentParser(
     description='Evaluate mesh algorithms.'
 )
-parser.add_argument('config', type=str, help='Path to config file.')
+parser.add_argument('out_dir', type=str, help='Path to project output file.')
+#parser.add_argument('config', type=str, help='Path to config file.')
 parser.add_argument('--gpu', type=str, default=0, help='Gpu number to use.')
 parser.add_argument('--no-cuda', action='store_true', help='Do not use cuda.')
 parser.add_argument('--eval_input', action='store_true',
@@ -22,9 +23,12 @@ parser.add_argument('--da', action='store_true', help='Generate using the target
 parser.add_argument('--generation_dir', type=str, default="", help='path of generation dir. If omitted, will use the one in the config yaml')
 
 
+config_yaml_path = glob.glob(os.path.join(args.out_dir,"*.yaml"))
+if len(config_yaml_path) != 1:
+    raise ValueError("no yaml, or more than one yaml")
 
 args = parser.parse_args()
-cfg = config.load_config(args.config, 'configs/default.yaml')
+cfg = config.load_config(config_yaml_path[0], 'configs/default.yaml')
 is_cuda = (torch.cuda.is_available() and not args.no_cuda)
 device = torch.device("cuda:{}".format(args.gpu) if is_cuda else "cpu")
 

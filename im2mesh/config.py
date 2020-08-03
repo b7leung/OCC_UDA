@@ -107,6 +107,19 @@ def get_generator(model, cfg, device):
     return generator
 
 
+def get_generator_TSNE(model, cfg, device):
+    ''' Returns a generator instance.
+
+    Args:
+        model (nn.Module): the model which is used
+        cfg (dict): config dictionary
+        device (device): pytorch device
+    '''
+    method = cfg['method']
+    generator = method_dict[method].config.get_generator_TSNE(model, cfg, device)
+    return generator
+
+
 # Datasets
 def get_dataset(mode, cfg, return_idx=False, return_category=False, use_target_domain = False):
     ''' Returns the dataset.

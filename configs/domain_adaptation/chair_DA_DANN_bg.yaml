@@ -12,11 +12,11 @@ data:
   uda_bg_configure: "bg"
   voxels_file: null # check in config.py for onet
 model:
-  encoder_latent: null
+  encoder_latent: null # This disables the latent vector z for generation
+  z_dim: 0
   decoder: cbatchnorm
   encoder: resnet18
   c_dim: 256 # size of latent code for image
-  z_dim: 0
 training:
   out_dir:  out/DA_related/onet_chair_DANN_optimized_bg
   batch_size: 64

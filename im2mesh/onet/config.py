@@ -3,7 +3,7 @@ import torch.distributions as dist
 from torch import nn
 import os
 from im2mesh.encoder import encoder_dict
-from im2mesh.onet import models, training, generation
+from im2mesh.onet import models, training, generation, generation_tsne
 from im2mesh import data
 from im2mesh import config
 
@@ -114,8 +114,32 @@ def get_generator(model, cfg, device, **kwargs):
     return generator
 
 
+def get_generator_TSNE(model, cfg, device, **kwargs):
+    ''' Returns the generator object. For TSNE experiments
+
+    Args:
+        model (nn.Module): Occupancy Network model
+        cfg (dict): imported yaml config
+        device (device): pytorch device
+    '''
+    preprocessor = config.get_preprocessor(cfg, device=device)
+
+    generator = generation_tsne.Generator3D_TSNE(
+        model,
+        device=device,
+        threshold=cfg['test']['threshold'],
+        resolution0=cfg['generation']['resolution_0'],
+        upsampling_steps=cfg['generation']['upsampling_steps'],
+        sample=cfg['generation']['use_sampling'],
+        refinement_step=cfg['generation']['refinement_step'],
+        simplify_nfaces=cfg['generation']['simplify_nfaces'],
+        preprocessor=preprocessor,
+    )
+    return generator
+
+
 def get_prior_z(cfg, device, **kwargs):
-    ''' Returns prior distribution for latent code z.
+    ''' Returns prior distribution for latent code z. (standard multivariate normal)
 
     Args:
         cfg (dict): imported yaml config

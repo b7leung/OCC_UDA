@@ -75,7 +75,8 @@ class Decoder(nn.Module):
 
 
 class DecoderCBatchNorm(nn.Module):
-    ''' Decoder with conditional batch normalization (CBN) class.
+    ''' Decoder with conditional batch normalization (CBN) class. 
+        ** the one normally used for image reconstruction
 
     Args:
         dim (int): input dimension

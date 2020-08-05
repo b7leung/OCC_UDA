@@ -29,7 +29,7 @@ class OccupancyNetwork(nn.Module):
         device (device): torch device
     '''
 
-    def __init__(self, decoder, encoder=None, dann_discriminator=None, encoder_latent=None, p0_z=None,
+    def __init__(self, cfg, decoder, encoder=None, dann_discriminator=None, encoder_latent=None, p0_z=None,
                  device=None):
         super().__init__()
         if p0_z is None:

@@ -1,5 +1,6 @@
 import os
 from tqdm import trange
+from tqdm import tqdm
 import torch
 from torch.nn import functional as F
 from torch import distributions as dist
@@ -25,7 +26,7 @@ class Trainer(BaseTrainer):
 
     '''
 
-    def __init__(self, model, optimizer, device=None, input_type='img',
+    def __init__(self, model, optimizer, cfg, device=None, input_type='img',
                  vis_dir=None, threshold=0.5, eval_sample=False, uda_type=None, num_epochs=None):
         self.model = model
         self.optimizer = optimizer
@@ -35,6 +36,7 @@ class Trainer(BaseTrainer):
         self.threshold = threshold
         self.eval_sample = eval_sample
         self.uda_type = uda_type
+        self.cfg = cfg
         
         self.curr_epoch = 0
         self.num_epochs = num_epochs
@@ -119,6 +121,23 @@ class Trainer(BaseTrainer):
 
         return eval_dict
 
+
+    def uda_evaluate(self, uda_loader):
+        device = self.device
+        uda_accuracies = []
+
+        for data in tqdm(uda_loader):
+            with torch.no_grad():
+                domain_pred_source, domain_labels_source, domain_pred_target, domain_labels_target = self.compute_uda(data)
+                source_correct_vec = (torch.sigmoid(domain_pred_source) > 0.5) == domain_labels_source.byte()
+                target_correct_vec = (torch.sigmoid(domain_pred_target) > 0.5) == domain_labels_target.byte()
+                uda_accuracies.append(source_correct_vec.cpu().numpy())
+                uda_accuracies.append(target_correct_vec.cpu().numpy())
+
+        uda_avg_acc = np.mean(np.concatenate(uda_accuracies, axis = 0))
+        return uda_avg_acc
+
+
     def visualize(self, data):
         ''' Performs a visualization step for the data.
 
@@ -148,8 +167,35 @@ class Trainer(BaseTrainer):
             vis.visualize_voxels(
                 voxels_out[i], os.path.join(self.vis_dir, '%03d.png' % i))
 
+
+    # c is the encoded inputs for the source domain; it can be supplied, if it was already precomputed before
+    def compute_uda(self, data, c = None):
+        device = self.device
+        p = data.get('points').to(device)
+
+        if c is None:
+            # encoded image (source domain)
+            inputs = data.get('inputs', torch.empty(p.size(0), 0)).to(device)
+            c = self.model.encode_inputs(inputs)
+
+        # encoded image (target domain)
+        inputs_target = data.get('inputs_target_domain', torch.empty(p.size(0), 0)).to(device)
+        c_target = self.model.encode_inputs(inputs_target)
+
+        # source domain has label 0, target domain has label 1
+        domain_pred_source = self.model.dann_discriminator_pred(c)
+        domain_pred_target = self.model.dann_discriminator_pred(c_target)
+        batch_size = c.shape[0]
+        domain_labels_source = torch.zeros((batch_size, 1)).to(device)
+        domain_labels_target = torch.ones((batch_size, 1)).to(device)
+
+        return domain_pred_source, domain_labels_source, domain_pred_target, domain_labels_target
+
+
+
+
     def compute_loss(self, data):
-        ''' Computes the loss.
+        ''' Computes the overall loss.
 
         Args:
             data (dict): data dictionary
@@ -174,21 +220,27 @@ class Trainer(BaseTrainer):
 
         # Domain Adaptation Loss
         if self.uda_type == "dann":
-            # encoded image (target domain)
-            inputs_target = data.get('inputs_target_domain', torch.empty(p.size(0), 0)).to(device)
-            c_target = self.model.encode_inputs(inputs_target)
 
-            # source domain has label 0, target domain has label 1
-            domain_pred_source = self.model.dann_discriminator_pred(c)
-            domain_pred_target = self.model.dann_discriminator_pred(c_target)
-            batch_size = c.shape[0]
-            domain_labels_source = torch.zeros((batch_size, 1)).to(device)
-            domain_labels_target = torch.ones((batch_size, 1)).to(device)
             if self.num_epochs is None:
                 raise ValueError("For DANN domain adaptation, must specify num_epochs")
-            lam = (2 / (1 + np.exp(-10 * (self.curr_epoch / self.num_epochs))) ) - 1
-            loss = loss + (F.binary_cross_entropy_with_logits(domain_pred_source, domain_labels_source) * lam)
-            loss = loss + (F.binary_cross_entropy_with_logits(domain_pred_target, domain_labels_target) * lam)
+
+            # choosing weight based on config.
+            if self.cfg["training_uda_dann"]["uda_train_style"] == "exp":
+                lam = (2 / (1 + np.exp(-10 * (self.curr_epoch / self.num_epochs))) ) - 1
+            elif self.cfg["training_uda_dann"]["uda_train_style"] == "binary":
+                if self.curr_epoch > self.cfg["training_uda_dann"]["uda_epoch_begin"]:
+                    lam = 1
+                else:
+                    lam = 0
+            else:
+                raise ValueError("DANN DA style needs to be either exp or binary.")
+
+            domain_pred_source, domain_labels_source, domain_pred_target, domain_labels_target = self.compute_uda(data, c)
+            uda_loss = F.binary_cross_entropy_with_logits(domain_pred_source, domain_labels_source) * lam + \
+                F.binary_cross_entropy_with_logits(domain_pred_target, domain_labels_target) * lam
+            #print("{} {} uda_loss: {}, lam: {}".format(self.curr_epoch, self.cfg["training_uda_dann"]["uda_epoch_begin"], uda_loss, lam))
+            loss = loss + uda_loss
+
 
 
         # General points

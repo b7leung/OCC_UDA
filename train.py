@@ -3,9 +3,12 @@ import torch.optim as optim
 from tensorboardX import SummaryWriter
 import numpy as np
 import os
+import glob
 import subprocess
 import argparse
 import time
+import pprint
+from tqdm import tqdm
 import matplotlib; matplotlib.use('Agg')
 from im2mesh import config, data
 from im2mesh.checkpoints import CheckpointIO
@@ -15,7 +18,8 @@ from im2mesh.checkpoints import CheckpointIO
 parser = argparse.ArgumentParser(
     description='Train a 3D reconstruction model.'
 )
-parser.add_argument('config', type=str, help='Path to config file.')
+parser.add_argument('out_dir', type=str, help='Path to project output file.')
+#parser.add_argument('config', type=str, help='Path to config file.')
 parser.add_argument('--gpu', type=str, default=0, help='Gpu number to use.')
 parser.add_argument('--no-cuda', action='store_true', help='Do not use cuda.')
 parser.add_argument('--benchmark_mode', action='store_true', help='Do not use cuda.')
@@ -24,7 +28,15 @@ parser.add_argument('--exit-after', type=int, default=-1,
                          'with exit code 2.')
 
 args = parser.parse_args()
-cfg = config.load_config(args.config, 'configs/default.yaml')
+
+config_yaml_path = glob.glob(os.path.join(args.out_dir,"*.yaml"))
+if len(config_yaml_path) != 1:
+    raise ValueError("no yaml, or more than one yaml")
+cfg = config.load_config(config_yaml_path[0], 'configs/default.yaml')
+if cfg['training']['out_dir'].replace('/','') != args.out_dir.replace('/',''):
+    raise ValueError("args out_dir must match out_dir in yaml config file.")
+
+
 is_cuda = (torch.cuda.is_available() and not args.no_cuda)
 device = torch.device("cuda:{}".format(args.gpu) if is_cuda else "cpu")
 
@@ -49,18 +61,17 @@ else:
 # Output directory
 if not os.path.exists(out_dir):
     os.makedirs(out_dir)
-# copy input yaml to out directory for future reference
-my_cmd = subprocess.run(['cp', args.config, os.path.join(out_dir,"CONFIG_USED"+args.config.split('/')[-1])], check=True)
 
 
 # Dataset
 train_dataset = config.get_dataset('train', cfg)
 val_dataset = config.get_dataset('val', cfg)
+uda_dataset = config.get_dataset('train', cfg) # for testing uda discriminator performance
 
 if args.benchmark_mode:
     num_workers = 0
 else:
-    num_workers = 8
+    num_workers = 24
 
 train_loader = torch.utils.data.DataLoader(
     train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True,
@@ -69,6 +80,11 @@ train_loader = torch.utils.data.DataLoader(
 
 val_loader = torch.utils.data.DataLoader(
     val_dataset, batch_size=10, num_workers=num_workers, shuffle=False,
+    collate_fn=data.collate_remove_none,
+    worker_init_fn=data.worker_init_fn)
+
+uda_loader = torch.utils.data.DataLoader(
+    uda_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True,
     collate_fn=data.collate_remove_none,
     worker_init_fn=data.worker_init_fn)
 
@@ -93,8 +109,8 @@ try:
     load_dict = checkpoint_io.load('model.pt')
 except FileExistsError:
     load_dict = dict()
-epoch_it = load_dict.get('epoch_it', -1)
-it = load_dict.get('it', -1)
+epoch_it = load_dict.get('epoch_it', 0)
+it = load_dict.get('it', 0)
 metric_val_best = load_dict.get(
     'loss_val_best', -model_selection_sign * np.inf)
 
@@ -119,20 +135,23 @@ print_every = cfg['training']['print_every']
 checkpoint_every = cfg['training']['checkpoint_every']
 validate_every = cfg['training']['validate_every']
 visualize_every = cfg['training']['visualize_every']
+uda_validate_every = cfg['training_uda_dann']['uda_validate_every']
 
 # Print model
-nparameters = sum(p.numel() for p in model.parameters())
-print(model)
-print('Total number of parameters: %d' % nparameters)
+#nparameters = sum(p.numel() for p in model.parameters())
+#print(model)
+#print('Total number of parameters: %d' % nparameters)
 
 num_epochs = cfg['training']['num_epochs']
 
+trainer.curr_epoch = epoch_it
+pbar = tqdm(range(num_epochs))
+pbar.update(epoch_it)
+pbar.refresh()
 while True:
-    epoch_it += 1
 #     scheduler.step()
 
     for batch in train_loader:
-        it += 1
         loss = trainer.train_step(batch)
         logger.add_scalar('train/loss', loss, it)
 
@@ -142,25 +161,25 @@ while True:
                   % (epoch_it, it, loss))
 
         if not args.benchmark_mode:
-            # Visualize output (comment out when benchmarking)
-            if visualize_every > 0 and (it % visualize_every) == 0:
+            # Visualize output
+            if visualize_every > 0 and (it % visualize_every) == 0 and it != 0:
                 print('Visualizing')
                 trainer.visualize(data_vis)
 
-            # Save checkpoint (comment out when benchmarking)
-            if (checkpoint_every > 0 and (it % checkpoint_every) == 0):
+            # Save checkpoint
+            if checkpoint_every > 0 and (it % checkpoint_every) == 0 and it != 0:
                 print('Saving checkpoint')
                 checkpoint_io.save('model.pt', epoch_it=epoch_it, it=it,
                                 loss_val_best=metric_val_best)
 
-            # Backup if necessary (comment out when benchmarking)
-            if (backup_every > 0 and (it % backup_every) == 0):
+            # Backup if necessary
+            if (backup_every > 0 and (it % backup_every) == 0) and it != 0:
                 print('Backup checkpoint')
                 checkpoint_io.save('model_%d.pt' % it, epoch_it=epoch_it, it=it,
                                 loss_val_best=metric_val_best)
 
-            # Run validation (comment out when benchmarking)
-            if validate_every > 0 and (it % validate_every) == 0:
+            # Run validation
+            if validate_every > 0 and (it % validate_every) == 0 and it !=0:
                 eval_dict = trainer.evaluate(val_loader)
                 metric_val = eval_dict[model_selection_metric]
                 print('Validation metric (%s): %.4f'
@@ -174,8 +193,16 @@ while True:
                     print('New best model (loss %.4f)' % metric_val_best)
                     checkpoint_io.save('model_best.pt', epoch_it=epoch_it, it=it,
                                     loss_val_best=metric_val_best)
+            
+            if cfg['training']['uda_type'] is not None and uda_validate_every > 0 and (it % uda_validate_every) == 0 and it != 0:
+                # if binary, only measure after starting uda
+                if cfg['training_uda_dann']['uda_train_style'] != "binary" or epoch_it > cfg['training_uda_dann']['uda_epoch_begin']:
+                    print('Computing UDA acc')
+                    uda_acc = trainer.uda_evaluate(uda_loader)
+                    logger.add_scalar('train/uda_acc', uda_acc, it)
+                    print('[Epoch %02d] it=%03d, uda_acc=%.4f'
+                    % (epoch_it, it, uda_acc))
 
-    
         # Exit if necessary
         if (exit_after > 0 and (time.time() - t0) >= exit_after) or (num_epochs is not None and epoch_it > num_epochs):
             print('Time limit reached, or max epochs reached. Exiting.')
@@ -183,7 +210,11 @@ while True:
                                loss_val_best=metric_val_best)
             exit(3)
 
+        it += 1
+
     if args.benchmark_mode:
         break
-
+    epoch_it += 1
+    pbar.update(1)
+    pbar.refresh()
     trainer.curr_epoch += 1

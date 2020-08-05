@@ -55,6 +55,11 @@ training:
   model_selection_mode: minimize
   uda_type: null # null (no uda), or DANN
   num_epochs: null
+training_uda_dann:
+  uda_epoch_begin: 1000
+  uda_train_style: binary # either binary (start at uda_epoch_begin, weight 1) or exp (weights according to exponential)
+  uda_validate_every: 1000
+  grad_rev: True # should usually be true; set to false to diagnose issues (will turn off grad-rev layer, and just fit discriminator)
 test:
   threshold: 0.5
   eval_mesh: true

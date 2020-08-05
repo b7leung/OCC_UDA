@@ -10,6 +10,8 @@ data:
   uda_classes: ['chair']
   uda_img_folder: img_pix3d # used for testing
   uda_bg_configure: "bg"
+  uda_epoch_begin: 1500
+  uda_train_style: binary # either binary (start at uda_epoch_begin, weight 1) or exp (weights according to exponential)
   voxels_file: null # check in config.py for onet
 model:
   encoder_latent: null # This disables the latent vector z for generation
@@ -26,7 +28,7 @@ training:
   validate_every: 20000
   backup_every: 10000
   uda_type: dann
-  num_epochs: 1000
+  num_epochs: 3000
 test:
   threshold: 0.2
   eval_mesh: true

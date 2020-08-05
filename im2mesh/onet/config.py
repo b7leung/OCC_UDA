@@ -52,13 +52,13 @@ def get_model(cfg, device=None, dataset=None, **kwargs):
         encoder = None
 
     if uda_type == "dann":
-        dann_discriminator = models.dann_domain_discriminator.DANN_Domain_Discriminator(c_dim)
+        dann_discriminator = models.dann_domain_discriminator.DANN_Domain_Discriminator(c_dim, cfg['training_uda_dann']["grad_rev"])
     else:
         dann_discriminator = None
 
     p0_z = get_prior_z(cfg, device)
     model = models.OccupancyNetwork(
-        decoder, encoder, dann_discriminator, encoder_latent, p0_z, device=device
+        cfg, decoder, encoder, dann_discriminator, encoder_latent, p0_z, device=device
     )
 
     return model
@@ -79,7 +79,7 @@ def get_trainer(model, optimizer, cfg, device, **kwargs):
     input_type = cfg['data']['input_type']
 
     trainer = training.Trainer(
-        model, optimizer,
+        model, optimizer, cfg,
         device=device, input_type=input_type,
         vis_dir=vis_dir, threshold=threshold,
         eval_sample=cfg['training']['eval_sample'],

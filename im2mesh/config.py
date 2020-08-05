@@ -248,11 +248,11 @@ def get_inputs_field(mode, cfg, use_target_domain = False):
             filename_pattern= cfg['data']['uda_bg_configure']
         else:
             img_folder_name = cfg['data']['img_folder']
-            filename_pattern = "*"
+            filename_pattern = cfg['data']['img_filename_pattern']
 
         inputs_field = data.ImagesField(
             img_folder_name, transform,
-            with_camera=with_camera, random_view=random_view, filename_pattern=filename_pattern
+            with_camera=with_camera, random_view=random_view, filename_pattern=filename_pattern, extensions=['jpg', 'jpeg', 'png']
         )
     elif input_type == 'pointcloud':
         transform = transforms.Compose([

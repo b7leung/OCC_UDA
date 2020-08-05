@@ -36,7 +36,6 @@ cfg = config.load_config(config_yaml_path[0], 'configs/default.yaml')
 if cfg['training']['out_dir'].replace('/','') != args.out_dir.replace('/',''):
     raise ValueError("args out_dir must match out_dir in yaml config file.")
 
-
 is_cuda = (torch.cuda.is_available() and not args.no_cuda)
 device = torch.device("cuda:{}".format(args.gpu) if is_cuda else "cpu")
 
@@ -57,10 +56,6 @@ elif cfg['training']['model_selection_mode'] == 'minimize':
 else:
     raise ValueError('model_selection_mode must be '
                      'either maximize or minimize.')
-
-# Output directory
-if not os.path.exists(out_dir):
-    os.makedirs(out_dir)
 
 
 # Dataset
@@ -101,7 +96,6 @@ model = config.get_model(cfg, device=device, dataset=train_dataset)
 # Intialize training
 npoints = 1000
 optimizer = optim.Adam(model.parameters(), lr=1e-4)
-# optimizer = optim.SGD(model.parameters(), lr=1e-4, momentum=0.9)
 trainer = config.get_trainer(model, optimizer, cfg, device=device)
 
 checkpoint_io = CheckpointIO(out_dir, model=model, optimizer=optimizer)
@@ -119,15 +113,10 @@ metric_val_best = load_dict.get(
 if metric_val_best == np.inf or metric_val_best == -np.inf:
     metric_val_best = -model_selection_sign * np.inf
 
-# TODO: remove this switch
-# metric_val_best = -model_selection_sign * np.inf
 
 print('Current best validation metric (%s): %.8f'
       % (model_selection_metric, metric_val_best))
 
-# TODO: reintroduce or remove scheduler?
-# scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=4000,
-#                                       gamma=0.1, last_epoch=epoch_it)
 logger = SummaryWriter(os.path.join(out_dir, 'logs'))
 
 # Shorthands
@@ -137,19 +126,12 @@ validate_every = cfg['training']['validate_every']
 visualize_every = cfg['training']['visualize_every']
 uda_validate_every = cfg['training_uda_dann']['uda_validate_every']
 
-# Print model
-#nparameters = sum(p.numel() for p in model.parameters())
-#print(model)
-#print('Total number of parameters: %d' % nparameters)
-
 num_epochs = cfg['training']['num_epochs']
-
 trainer.curr_epoch = epoch_it
 pbar = tqdm(range(num_epochs))
 pbar.update(epoch_it)
 pbar.refresh()
 while True:
-#     scheduler.step()
 
     for batch in train_loader:
         loss = trainer.train_step(batch)

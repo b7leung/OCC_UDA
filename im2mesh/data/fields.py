@@ -107,8 +107,6 @@ class ImagesField(Field):
                 files_template = os.path.join(folder, '{}.{}'.format(self.filename_pattern, extension))
                 files += glob.glob(files_template)
 
-            
-
         if self.random_view:
             #idx_img = random.randint(0, len(files)-1)
             # more efficient

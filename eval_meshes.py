@@ -8,6 +8,7 @@ import torch
 from im2mesh import config, data
 from im2mesh.eval import MeshEvaluator
 from im2mesh.utils.io import load_pointcloud
+import glob
 
 
 parser = argparse.ArgumentParser(
@@ -21,13 +22,11 @@ parser.add_argument('--eval_input', action='store_true',
                     help='Evaluate inputs instead.')
 parser.add_argument('--da', action='store_true', help='Generate using the target dataset, for unsupervised domain adaptation.')
 parser.add_argument('--generation_dir', type=str, default="", help='path of generation dir. If omitted, will use the one in the config yaml')
-
+args = parser.parse_args()
 
 config_yaml_path = glob.glob(os.path.join(args.out_dir,"*.yaml"))
 if len(config_yaml_path) != 1:
     raise ValueError("no yaml, or more than one yaml")
-
-args = parser.parse_args()
 cfg = config.load_config(config_yaml_path[0], 'configs/default.yaml')
 is_cuda = (torch.cuda.is_available() and not args.no_cuda)
 device = torch.device("cuda:{}".format(args.gpu) if is_cuda else "cpu")

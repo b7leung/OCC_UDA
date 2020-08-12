@@ -177,8 +177,8 @@ while True:
                                     loss_val_best=metric_val_best)
             
             if cfg['training']['uda_type'] is not None and uda_validate_every > 0 and (it % uda_validate_every) == 0 and it != 0:
-                # if binary, only measure after starting uda
-                if cfg['training_uda_dann']['uda_train_style'] != "binary" or epoch_it > cfg['training_uda_dann']['uda_epoch_begin']:
+                # if binary, only measure 1 epoch before starting uda
+                if cfg['training_uda_dann']['uda_train_style'] != "binary" or epoch_it > cfg['training_uda_dann']['uda_epoch_begin']-2:
                     print('Computing UDA acc')
                     uda_acc = trainer.uda_evaluate(uda_loader)
                     logger.add_scalar('train/uda_acc', uda_acc, it)

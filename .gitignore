@@ -17,3 +17,4 @@ build
 /saved_models
 */.ipynb_checkpoints/*.ipynb
 *.swp
+/notebooks/latent_models
